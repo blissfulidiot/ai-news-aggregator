@@ -86,6 +86,42 @@ class SourceRepository:
             db.commit()
             return True
         return False
+    
+    @staticmethod
+    def get_or_create(db: Session, name: str, url: str, source_type: SourceType,
+                     youtube_channel_id: Optional[str] = None,
+                     youtube_username: Optional[str] = None,
+                     rss_url: Optional[str] = None) -> Source:
+        """Get existing source or create a new one"""
+        # Try to find existing source by URL first (most reliable)
+        source = SourceRepository.get_by_url(db, url)
+        if source:
+            return source
+        
+        # For RSS sources, also check RSS URL
+        if source_type == SourceType.RSS and rss_url:
+            source = SourceRepository.get_by_rss_url(db, rss_url)
+            if source:
+                return source
+        
+        # For YouTube sources, check channel ID and username
+        if source_type == SourceType.YOUTUBE:
+            if youtube_channel_id:
+                source = SourceRepository.get_by_youtube_channel_id(db, youtube_channel_id)
+                if source:
+                    return source
+            if youtube_username:
+                source = SourceRepository.get_by_youtube_username(db, youtube_username)
+                if source:
+                    return source
+        
+        # Create new source if not found
+        return SourceRepository.create(
+            db, name, url, source_type,
+            youtube_channel_id=youtube_channel_id,
+            youtube_username=youtube_username,
+            rss_url=rss_url
+        )
 
 
 class ArticleRepository:
@@ -175,6 +211,25 @@ class ArticleRepository:
     def exists_by_url(db: Session, url: str) -> bool:
         """Check if article exists by URL"""
         return db.query(Article).filter(Article.url == url).first() is not None
+    
+    @staticmethod
+    def get_without_markdown(db: Session, limit: Optional[int] = None) -> List[Article]:
+        """Get articles without markdown content"""
+        query = db.query(Article).filter(Article.markdown_content.is_(None)).order_by(Article.published_at.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+    
+    @staticmethod
+    def update_markdown(db: Session, article_id: int, markdown_content: str) -> Optional[Article]:
+        """Update article markdown content"""
+        article = ArticleRepository.get_by_id(db, article_id)
+        if article:
+            article.markdown_content = markdown_content
+            article.markdown_fetched_at = datetime.now(timezone.utc)
+            db.commit()
+            db.refresh(article)
+        return article
 
 
 class VideoRepository:

@@ -37,43 +37,90 @@ def test_database():
         # Test Source operations
         print("\n2. Testing Source operations...")
         
-        # Create sources
-        anthropic_source = SourceRepository.create(
-            db,
-            name="Anthropic",
-            url="https://www.anthropic.com",
-            source_type=SourceType.RSS,
-            rss_url="https://anthropic.com/rss.xml"
-        )
-        print(f"   ✓ Created source: {anthropic_source.name} (ID: {anthropic_source.id})")
+        # Check if sources exist, create if not
+        anthropic_source = SourceRepository.get_by_url(db, "https://www.anthropic.com")
+        if not anthropic_source:
+            anthropic_source = SourceRepository.create(
+                db,
+                name="Anthropic",
+                url="https://www.anthropic.com",
+                source_type=SourceType.RSS,
+                rss_url="https://anthropic.com/rss.xml"
+            )
+            print(f"   ✓ Created source: {anthropic_source.name} (ID: {anthropic_source.id})")
+        else:
+            print(f"   ✓ Source already exists: {anthropic_source.name} (ID: {anthropic_source.id})")
         
-        youtube_source = SourceRepository.create(
-            db,
-            name="CNBC Television",
-            url="https://www.youtube.com/@CNBCtelevision",
-            source_type=SourceType.YOUTUBE,
-            youtube_username="CNBCtelevision",
-            youtube_channel_id="UCvH3Uf5HqW2u7j7J7J7J7J7"
-        )
-        print(f"   ✓ Created source: {youtube_source.name} (ID: {youtube_source.id})")
+        youtube_source = SourceRepository.get_by_url(db, "https://www.youtube.com/@CNBCtelevision")
+        if not youtube_source:
+            youtube_source = SourceRepository.create(
+                db,
+                name="CNBC Television",
+                url="https://www.youtube.com/@CNBCtelevision",
+                source_type=SourceType.YOUTUBE,
+                youtube_username="CNBCtelevision",
+                youtube_channel_id="UCvH3Uf5HqW2u7j7J7J7J7J7"
+            )
+            print(f"   ✓ Created source: {youtube_source.name} (ID: {youtube_source.id})")
+        else:
+            print(f"   ✓ Source already exists: {youtube_source.name} (ID: {youtube_source.id})")
         
         # Get sources
         sources = SourceRepository.get_all(db)
-        print(f"   ✓ Retrieved {len(sources)} sources")
+        print(f"   ✓ Retrieved {len(sources)} total sources")
+        
+        # Verify duplicate prevention for sources
+        print("\n   Testing duplicate prevention...")
+        try:
+            duplicate_source = SourceRepository.create(
+                db,
+                name="Duplicate Anthropic",
+                url="https://www.anthropic.com",  # Same URL
+                source_type=SourceType.RSS,
+                rss_url="https://anthropic.com/rss.xml"
+            )
+            print("   ✗ ERROR: Duplicate source was created (this should not happen!)")
+        except Exception as e:
+            db.rollback()  # Rollback after duplicate error
+            print(f"   ✓ Duplicate prevented: {type(e).__name__}")
         
         # Test Article operations
         print("\n3. Testing Article operations...")
         
-        test_article = ArticleRepository.create(
-            db,
-            source_id=anthropic_source.id,
-            title="Test Article",
-            url="https://example.com/test-article",
-            published_at=datetime.now(timezone.utc),
-            description="This is a test article",
-            feed_type="engineering"
-        )
-        print(f"   ✓ Created article: {test_article.title} (ID: {test_article.id})")
+        test_article_url = "https://example.com/test-article"
+        
+        # Check if article exists before creating
+        if ArticleRepository.exists_by_url(db, test_article_url):
+            test_article = ArticleRepository.get_by_url(db, test_article_url)
+            print(f"   ✓ Article already exists: {test_article.title} (ID: {test_article.id})")
+        else:
+            test_article = ArticleRepository.create(
+                db,
+                source_id=anthropic_source.id,
+                title="Test Article",
+                url=test_article_url,
+                published_at=datetime.now(timezone.utc),
+                description="This is a test article",
+                feed_type="engineering"
+            )
+            print(f"   ✓ Created article: {test_article.title} (ID: {test_article.id})")
+        
+        # Verify duplicate prevention
+        print("\n   Testing duplicate prevention...")
+        try:
+            duplicate_article = ArticleRepository.create(
+                db,
+                source_id=anthropic_source.id,
+                title="Duplicate Test Article",
+                url=test_article_url,  # Same URL
+                published_at=datetime.now(timezone.utc),
+                description="This should fail",
+                feed_type="engineering"
+            )
+            print("   ✗ ERROR: Duplicate article was created (this should not happen!)")
+        except Exception as e:
+            db.rollback()  # Rollback after duplicate error
+            print(f"   ✓ Duplicate prevented: {type(e).__name__}")
         
         # Check if article exists
         exists = ArticleRepository.exists_by_url(db, test_article.url)
@@ -86,16 +133,42 @@ def test_database():
         # Test Video operations
         print("\n4. Testing Video operations...")
         
-        test_video = VideoRepository.create(
-            db,
-            source_id=youtube_source.id,
-            title="Test Video",
-            url="https://www.youtube.com/watch?v=test123",
-            video_id="test123",
-            published_at=datetime.now(timezone.utc),
-            description="This is a test video"
-        )
-        print(f"   ✓ Created video: {test_video.title} (ID: {test_video.id})")
+        test_video_id = "test123"
+        test_video_url = "https://www.youtube.com/watch?v=test123"
+        
+        # Check if video exists before creating
+        existing_video = VideoRepository.get_by_video_id(db, test_video_id)
+        if existing_video:
+            test_video = existing_video
+            print(f"   ✓ Video already exists: {test_video.title} (ID: {test_video.id})")
+        else:
+            test_video = VideoRepository.create(
+                db,
+                source_id=youtube_source.id,
+                title="Test Video",
+                url=test_video_url,
+                video_id=test_video_id,
+                published_at=datetime.now(timezone.utc),
+                description="This is a test video"
+            )
+            print(f"   ✓ Created video: {test_video.title} (ID: {test_video.id})")
+        
+        # Verify duplicate prevention for videos
+        print("\n   Testing duplicate prevention...")
+        try:
+            duplicate_video = VideoRepository.create(
+                db,
+                source_id=youtube_source.id,
+                title="Duplicate Test Video",
+                url=test_video_url,  # Same URL
+                video_id=test_video_id,  # Same video_id
+                published_at=datetime.now(timezone.utc),
+                description="This should fail"
+            )
+            print("   ✗ ERROR: Duplicate video was created (this should not happen!)")
+        except Exception as e:
+            db.rollback()  # Rollback after duplicate error
+            print(f"   ✓ Duplicate prevented: {type(e).__name__}")
         
         # Update transcript
         VideoRepository.update_transcript(db, test_video.id, "This is a test transcript")
@@ -109,12 +182,32 @@ def test_database():
         # Test UserSettings operations
         print("\n5. Testing UserSettings operations...")
         
-        user_settings = UserSettingsRepository.create(
-            db,
-            email="test@example.com",
-            system_prompt="Summarize articles concisely"
-        )
-        print(f"   ✓ Created user settings: {user_settings.email} (ID: {user_settings.id})")
+        test_email = "test@example.com"
+        existing_user = UserSettingsRepository.get_by_email(db, test_email)
+        
+        if existing_user:
+            user_settings = existing_user
+            print(f"   ✓ User settings already exist: {user_settings.email} (ID: {user_settings.id})")
+        else:
+            user_settings = UserSettingsRepository.create(
+                db,
+                email=test_email,
+                system_prompt="Summarize articles concisely"
+            )
+            print(f"   ✓ Created user settings: {user_settings.email} (ID: {user_settings.id})")
+        
+        # Verify duplicate prevention for user settings
+        print("\n   Testing duplicate prevention...")
+        try:
+            duplicate_user = UserSettingsRepository.create(
+                db,
+                email=test_email,  # Same email
+                system_prompt="This should fail"
+            )
+            print("   ✗ ERROR: Duplicate user settings was created (this should not happen!)")
+        except Exception as e:
+            db.rollback()  # Rollback after duplicate error
+            print(f"   ✓ Duplicate prevented: {type(e).__name__}")
         
         # Update user settings
         UserSettingsRepository.update(db, user_settings.id, system_prompt="Updated prompt")

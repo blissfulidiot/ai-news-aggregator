@@ -267,6 +267,10 @@ class YouTubeService:
         if not title or not url:
             return None
 
+        # Filter out YouTube Shorts
+        if '/shorts/' in url:
+            return None
+
         video_id = self.extract_video_id(url)
         if not video_id:
             return None

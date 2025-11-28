@@ -22,11 +22,11 @@ class Source(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
-    url = Column(String(500), nullable=False)
+    url = Column(String(500), nullable=False, unique=True, index=True)
     source_type = Column(Enum(SourceType), nullable=False, index=True)
-    youtube_channel_id = Column(String(100), nullable=True)
-    youtube_username = Column(String(100), nullable=True)
-    rss_url = Column(String(500), nullable=True)
+    youtube_channel_id = Column(String(100), nullable=True, unique=True, index=True)
+    youtube_username = Column(String(100), nullable=True, unique=True, index=True)
+    rss_url = Column(String(500), nullable=True, unique=True, index=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
@@ -54,6 +54,7 @@ class Article(Base):
     # Additional fields for different source types
     feed_type = Column(String(50), nullable=True)  # For Anthropic: news, engineering, research, red
     markdown_content = Column(Text, nullable=True)  # Full markdown content if fetched
+    markdown_fetched_at = Column(DateTime(timezone=True), nullable=True)  # Timestamp when markdown was fetched
     
     # Relationships
     source = relationship("Source", back_populates="articles")
