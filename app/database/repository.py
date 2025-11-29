@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from app.database.models import Source, Article, Video, UserSettings, Digest, SourceType
+from app.database.models import Source, Article, Video, UserSettings, Digest, DigestSent, SourceType
 from app.database.connection import get_db_session
 
 
@@ -489,4 +489,51 @@ class DigestRepository:
             db.commit()
             return True
         return False
+    
+    @staticmethod
+    def get_recent_not_sent_to_user(db: Session, user_email: str, hours: int = 24, limit: Optional[int] = None) -> List[Digest]:
+        """Get recent digests that haven't been sent to a specific user"""
+        from datetime import timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        
+        # Get digests sent to this user
+        sent_digest_ids = [
+            row[0] for row in db.query(DigestSent.digest_id).filter(
+                DigestSent.user_email == user_email
+            ).all()
+        ]
+        
+        # Get recent digests excluding those already sent
+        query = db.query(Digest).filter(
+            Digest.created_at >= cutoff
+        )
+        
+        if sent_digest_ids:
+            query = query.filter(~Digest.id.in_(sent_digest_ids))
+        
+        query = query.order_by(Digest.created_at.desc())
+        
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+    
+    @staticmethod
+    def mark_as_sent(db: Session, digest_id: int, user_email: str) -> DigestSent:
+        """Mark a digest as sent to a user"""
+        digest_sent = DigestSent(
+            digest_id=digest_id,
+            user_email=user_email
+        )
+        db.add(digest_sent)
+        db.commit()
+        db.refresh(digest_sent)
+        return digest_sent
+    
+    @staticmethod
+    def is_sent_to_user(db: Session, digest_id: int, user_email: str) -> bool:
+        """Check if a digest has been sent to a user"""
+        return db.query(DigestSent).filter(
+            DigestSent.digest_id == digest_id,
+            DigestSent.user_email == user_email
+        ).first() is not None
 

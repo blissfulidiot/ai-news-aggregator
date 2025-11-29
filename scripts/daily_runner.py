@@ -204,28 +204,6 @@ def send_email_digests(hours: int = 24, use_html: bool = True):
             print(f"✗ Error initializing agents: {e}")
             return {"sent": 0, "failed": 0, "total": len(users)}
         
-        # Get recent digests
-        digests = DigestRepository.get_recent(db, hours=hours)
-        
-        if not digests:
-            print(f"\n⚠ No digests found in the last {hours} hours")
-            print("Nothing to send.")
-            return {"sent": 0, "failed": 0, "total": len(users)}
-        
-        print(f"Found {len(digests)} digests from the last {hours} hours")
-        
-        # Prepare digest data for ranking
-        digest_data = [
-            {
-                "id": d.id,
-                "url": d.url,
-                "title": d.title,
-                "summary": d.summary,
-                "content_type": d.content_type
-            }
-            for d in digests
-        ]
-        
         sent_count = 0
         failed_count = 0
         
@@ -235,11 +213,32 @@ def send_email_digests(hours: int = 24, use_html: bool = True):
             print(f"\nProcessing user: {user_email}")
             
             try:
+                # Get digests that haven't been sent to this user yet
+                digests = DigestRepository.get_recent_not_sent_to_user(db, user_email, hours=hours)
+                
+                if not digests:
+                    print(f"  ⚠ No new digests for {user_email} (all digests already sent)")
+                    continue
+                
+                print(f"  Found {len(digests)} new digests for {user_email}")
+                
                 # Get user profile
                 profile = UserProfile.get_profile(user_email)
                 user_name = None
                 if profile:
                     user_name = profile.get('name') if profile.get('name') and profile.get('name').strip() else None
+                
+                # Prepare digest data for ranking
+                digest_data = [
+                    {
+                        "id": d.id,
+                        "url": d.url,
+                        "title": d.title,
+                        "summary": d.summary,
+                        "content_type": d.content_type
+                    }
+                    for d in digests
+                ]
                 
                 # Rank digests
                 if profile and profile.get('background') and profile.get('interests'):
@@ -288,6 +287,12 @@ def send_email_digests(hours: int = 24, use_html: bool = True):
                 if result:
                     sent_count += 1
                     print(f"  ✓ Email sent successfully")
+                    # Mark digests as sent to this user
+                    for item in ranked_items:
+                        digest = DigestRepository.get_by_url(db, item['url'])
+                        if digest:
+                            DigestRepository.mark_as_sent(db, digest.id, user_email)
+                    print(f"  ✓ Marked {len(ranked_items)} digests as sent to {user_email}")
                 else:
                     failed_count += 1
                     print(f"  ✗ Failed to send email")

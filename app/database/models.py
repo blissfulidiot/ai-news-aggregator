@@ -1,7 +1,7 @@
 """SQLAlchemy database models"""
 
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship
 import enum
 from app.database.connection import Base
@@ -120,7 +120,29 @@ class Digest(Base):
     # Relationships
     article = relationship("Article")
     video = relationship("Video")
+    sent_to_users = relationship("DigestSent", back_populates="digest", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Digest(id={self.id}, title='{self.title[:50]}...', content_type={self.content_type})>"
+
+
+class DigestSent(Base):
+    """Track which digests have been sent to which users"""
+    __tablename__ = "digests_sent"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    digest_id = Column(Integer, ForeignKey("digests.id"), nullable=False, index=True)
+    user_email = Column(String(255), nullable=False, index=True)
+    sent_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    
+    # Unique constraint: same digest shouldn't be sent twice to same user
+    __table_args__ = (
+        UniqueConstraint('digest_id', 'user_email', name='uq_digest_user'),
+    )
+    
+    # Relationships
+    digest = relationship("Digest", back_populates="sent_to_users")
+    
+    def __repr__(self):
+        return f"<DigestSent(id={self.id}, digest_id={self.digest_id}, user_email='{self.user_email}', sent_at={self.sent_at})>"
 

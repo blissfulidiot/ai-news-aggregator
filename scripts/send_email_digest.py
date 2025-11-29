@@ -48,7 +48,8 @@ def send_email_digest(recipient_email: str, hours: int = 24, use_html: bool = Tr
     db = next(db_gen)
     
     try:
-        digests = DigestRepository.get_recent(db, hours=hours)
+        # Get digests that haven't been sent to this user yet
+        digests = DigestRepository.get_recent_not_sent_to_user(db, recipient_email, hours=hours)
         
         if not digests:
             print(f"\n✓ No digests found in the last {hours} hours")
@@ -134,6 +135,13 @@ def send_email_digest(recipient_email: str, hours: int = 24, use_html: bool = Tr
             
             if result:
                 print(f"✓ Email sent successfully!")
+                # Mark digests as sent to this user
+                for item in ranked_items:
+                    # Find digest by URL
+                    digest = DigestRepository.get_by_url(db, item['url'])
+                    if digest:
+                        DigestRepository.mark_as_sent(db, digest.id, recipient_email)
+                print(f"✓ Marked {len(ranked_items)} digests as sent to {recipient_email}")
             else:
                 print(f"✗ Failed to send email")
             
