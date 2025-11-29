@@ -5,11 +5,23 @@
 """
 
 import sys
+import os
 from pathlib import Path
 from datetime import datetime
 
+# Ensure output is flushed immediately for Render logs
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+# Print startup info for debugging
+print(f"[STARTUP] Python version: {sys.version}")
+print(f"[STARTUP] Working directory: {os.getcwd()}")
+print(f"[STARTUP] Project root: {project_root}")
+print(f"[STARTUP] Script path: {__file__}")
+sys.stdout.flush()
 
 from app.runner import run_aggregator
 from app.database.connection import get_db_session
@@ -402,31 +414,60 @@ def main():
     """Main entry point"""
     import argparse
     
-    parser = argparse.ArgumentParser(description="Daily news aggregator pipeline")
-    parser.add_argument(
-        "--hours",
-        type=int,
-        default=24,
-        help="Number of hours to look back for content (default: 24)"
-    )
-    parser.add_argument(
-        "--text",
-        action="store_true",
-        help="Send plain text emails instead of HTML"
-    )
-    parser.add_argument(
-        "--skip-scraping",
-        action="store_true",
-        help="Skip the scraping step (useful for testing)"
-    )
-    
-    args = parser.parse_args()
-    
-    run_daily_pipeline(
-        hours=args.hours,
-        use_html=not args.text,
-        skip_scraping=args.skip_scraping
-    )
+    try:
+        print("[MAIN] Starting daily runner script")
+        sys.stdout.flush()
+        
+        parser = argparse.ArgumentParser(description="Daily news aggregator pipeline")
+        parser.add_argument(
+            "--hours",
+            type=int,
+            default=24,
+            help="Number of hours to look back for content (default: 24)"
+        )
+        parser.add_argument(
+            "--text",
+            action="store_true",
+            help="Send plain text emails instead of HTML"
+        )
+        parser.add_argument(
+            "--skip-scraping",
+            action="store_true",
+            help="Skip the scraping step (useful for testing)"
+        )
+        
+        args = parser.parse_args()
+        
+        print(f"[MAIN] Arguments: hours={args.hours}, text={args.text}, skip_scraping={args.skip_scraping}")
+        sys.stdout.flush()
+        
+        # Check critical environment variables
+        required_vars = ['DATABASE_URL', 'OPENAI_API_KEY']
+        missing_vars = [var for var in required_vars if not os.getenv(var)]
+        if missing_vars:
+            print(f"[ERROR] Missing required environment variables: {', '.join(missing_vars)}")
+            sys.stdout.flush()
+            sys.exit(1)
+        
+        print("[MAIN] Environment variables check passed")
+        sys.stdout.flush()
+        
+        run_daily_pipeline(
+            hours=args.hours,
+            use_html=not args.text,
+            skip_scraping=args.skip_scraping
+        )
+        
+        print("[MAIN] Script completed successfully")
+        sys.stdout.flush()
+        
+    except Exception as e:
+        print(f"[FATAL ERROR] Unhandled exception in main: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
