@@ -79,7 +79,7 @@ def process_digests(limit: int = None, batch_size: int = 10):
                     DigestRepository.create(
                         db, url=item.url, title=digest_output.title,
                         summary=digest_output.summary, content_type="article",
-                        article_id=item_id
+                        article_id=item_id, published_at=item.published_at
                     )
                 else:  # video
                     digest_output = agent.generate_digest_from_video(
@@ -90,7 +90,7 @@ def process_digests(limit: int = None, batch_size: int = 10):
                     DigestRepository.create(
                         db, url=item.url, title=digest_output.title,
                         summary=digest_output.summary, content_type="video",
-                        video_id=item_id
+                        video_id=item_id, published_at=item.published_at
                     )
                 
                 successful += 1

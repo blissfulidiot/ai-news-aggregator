@@ -407,15 +407,29 @@ class DigestRepository:
     
     @staticmethod
     def create(db: Session, url: str, title: str, summary: str, content_type: str,
-               article_id: Optional[int] = None, video_id: Optional[int] = None) -> Digest:
-        """Create a new digest"""
+               article_id: Optional[int] = None, video_id: Optional[int] = None,
+               published_at: Optional[datetime] = None) -> Digest:
+        """
+        Create a new digest
+        
+        Args:
+            db: Database session
+            url: Content URL
+            title: Digest title
+            summary: Digest summary
+            content_type: Content type ('article' or 'video')
+            article_id: Optional article ID
+            video_id: Optional video ID
+            published_at: Original publish date (will be used for created_at)
+        """
         digest = Digest(
             article_id=article_id,
             video_id=video_id,
             url=url,
             title=title,
             summary=summary,
-            content_type=content_type
+            content_type=content_type,
+            created_at=published_at if published_at else datetime.now(timezone.utc)
         )
         db.add(digest)
         db.commit()
