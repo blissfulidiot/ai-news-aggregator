@@ -381,4 +381,35 @@ Read more: {section.url}
         text += "This is your personalized news digest, ranked by relevance to your interests."
         
         return text
+    
+    def send_email(self, to: str, email_content: EmailContent, 
+                   use_html: bool = True) -> bool:
+        """
+        Send email using SMTP (Gmail with app password)
+        
+        Args:
+            to: Recipient email address
+            email_content: EmailContent object with email structure
+            use_html: Whether to send HTML email (default: True)
+            
+        Returns:
+            True if email sent successfully
+        """
+        from app.services.smtp_service import SMTPService
+        
+        # Format email content
+        body_text = self.format_email_text(email_content)
+        body_html = self.format_email_html(email_content) if use_html else None
+        
+        # Create subject line
+        subject = f"Your Daily News Digest - {email_content.date_line}"
+        
+        # Send via SMTP
+        smtp_service = SMTPService()
+        return smtp_service.send_email(
+            to=to,
+            subject=subject,
+            body_text=body_text,
+            body_html=body_html
+        )
 

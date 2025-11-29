@@ -83,3 +83,7 @@ test_results/
 email_digest_*.txt
 email_digest_*.html
 
+# Gmail API credentials
+credentials.json
+token.pickle
+
