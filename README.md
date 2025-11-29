@@ -27,8 +27,9 @@ cd ai-news-aggregator
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 2. Install dependencies
-pip install -r requirements.txt
+# 2. Install dependencies (using UV)
+pip install uv
+uv sync
 
 # 3. Start database
 cd docker && docker-compose up -d && cd ..
@@ -154,15 +155,16 @@ See [docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md) for detailed instruct
 app/
 ├── agents/          # AI agents (digest, ranking, email)
 ├── database/        # Database models and CRUD
-├── scrapers/        # RSS and YouTube scrapers
-├── services/       # YouTube, SMTP services
+├── scrapers/        # RSS scrapers (Anthropic, OpenAI)
+├── services/        # YouTube service, SMTP service
 └── runner.py        # Main aggregator
 
 scripts/
-├── daily_runner.py  # Complete pipeline
-├── run_aggregator.py
-├── process_digests.py
-└── send_email_digest.py
+├── daily_runner.py      # Complete pipeline
+├── run_aggregator.py    # Scraping only
+├── process_digests.py   # Generate summaries
+├── send_email_digest.py # Send emails
+└── manage_profile.py   # User management
 ```
 
 ## How It Works
