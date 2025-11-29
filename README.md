@@ -71,17 +71,22 @@ Create `.env` file (copy from `.env.example`):
 
 **Option 1: Production Database (Render/External)**
 ```bash
+# Set DATABASE_URL to use production database
+# This takes priority over individual DB_* variables
 DATABASE_URL=postgresql://user:password@host:port/database
 ```
 
 **Option 2: Local Development Database**
 ```bash
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=news_aggregator
-DB_USER=postgres
-DB_PASSWORD=postgres
+# Comment out DATABASE_URL and use individual variables
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_NAME=news_aggregator
+# DB_USER=postgres
+# DB_PASSWORD=postgres
 ```
+
+**Note:** `DATABASE_URL` takes priority. If set, individual `DB_*` variables are ignored. This makes it easy to switch between local and production databases.
 
 **Other Required Variables:**
 ```bash
@@ -184,12 +189,31 @@ scripts/
 1. **Scraping**: Fetches articles/videos from configured sources (last 24 hours)
 2. **Digest Generation**: Creates AI summaries for new content
 3. **Email Delivery**: Ranks content by user profile and sends personalized emails
+4. **Tracking**: Tracks which digests have been sent to each user (prevents duplicates)
+
+## Features
+
+### Digest Tracking
+- **Prevents Duplicates**: Tracks which digests have been sent to each user
+- **Per-User Filtering**: Each user only receives new/unseen digests
+- **Automatic Tracking**: Digests are marked as sent after successful email delivery
+
+### Database Switching
+- **Easy Switching**: Toggle between local and production by setting/unsetting `DATABASE_URL`
+- **Automatic Detection**: System detects which database mode to use
+- **Production Ready**: Works seamlessly with Render PostgreSQL
 
 ## Troubleshooting
 
 **Database issues?**
 ```bash
+# Check which database you're connected to
+python3 -c "from app.database.connection import DB_MODE; print(f'Mode: {DB_MODE}')"
+
+# Local: Check Docker
 docker ps  # Check PostgreSQL is running
+
+# Test connection
 python scripts/test_database.py
 ```
 
