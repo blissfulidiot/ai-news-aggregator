@@ -99,3 +99,24 @@ class UserSettings(Base):
     def __repr__(self):
         return f"<UserSettings(id={self.id}, email='{self.email}')>"
 
+
+class Digest(Base):
+    """Digest model for summarized content"""
+    __tablename__ = "digests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    article_id = Column(Integer, ForeignKey("articles.id"), nullable=True, index=True)
+    video_id = Column(Integer, ForeignKey("videos.id"), nullable=True, index=True)
+    url = Column(String(1000), nullable=False, index=True)
+    title = Column(String(500), nullable=False, index=True)
+    summary = Column(Text, nullable=False)  # 2-3 sentence summary
+    content_type = Column(String(50), nullable=False)  # 'article' or 'video'
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    
+    # Relationships
+    article = relationship("Article")
+    video = relationship("Video")
+    
+    def __repr__(self):
+        return f"<Digest(id={self.id}, title='{self.title[:50]}...', content_type={self.content_type})>"
+

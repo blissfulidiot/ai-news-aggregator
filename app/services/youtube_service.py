@@ -2,12 +2,21 @@
 
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
+import os
 import re
 import requests
 import feedparser
 from pydantic import BaseModel, Field
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+
+# Try to import proxy config (optional)
+try:
+    from youtube_transcript_api.proxies import WebshareProxyConfig
+    PROXY_AVAILABLE = True
+except ImportError:
+    PROXY_AVAILABLE = False
+    WebshareProxyConfig = None
 
 
 # ==================== Pydantic Models ====================
@@ -43,10 +52,53 @@ class YouTubeService:
     - Fetch transcripts for any YouTube video
     - Extract video IDs from URLs
     - Support for multiple channels
+    - Optional proxy support for transcript fetching
     """
     
-    def __init__(self):
-        self.transcript_api = YouTubeTranscriptApi()
+    def __init__(self, use_proxy: bool = None):
+        """
+        Initialize YouTube service
+        
+        Args:
+            use_proxy: Whether to use proxy (None = auto-detect from env vars)
+            
+        Proxy Configuration:
+            To use proxy for YouTube transcript fetching, set these environment variables:
+            - YOUTUBE_PROXY_USERNAME: Your proxy username
+            - YOUTUBE_PROXY_PASSWORD: Your proxy password
+            
+            Example in .env file:
+                YOUTUBE_PROXY_USERNAME=your_proxy_username
+                YOUTUBE_PROXY_PASSWORD=your_proxy_password
+            
+            If these are set, proxy will be used automatically. If not set, proxy is not used.
+        """
+        # Check if proxy should be used
+        proxy_config = None
+        if use_proxy is None:
+            # Auto-detect from environment variables
+            proxy_username = os.getenv("YOUTUBE_PROXY_USERNAME")
+            proxy_password = os.getenv("YOUTUBE_PROXY_PASSWORD")
+            if proxy_username and proxy_password and PROXY_AVAILABLE:
+                proxy_config = WebshareProxyConfig(
+                    proxy_username=proxy_username,
+                    proxy_password=proxy_password
+                )
+        elif use_proxy and PROXY_AVAILABLE:
+            # Explicitly use proxy
+            proxy_username = os.getenv("YOUTUBE_PROXY_USERNAME")
+            proxy_password = os.getenv("YOUTUBE_PROXY_PASSWORD")
+            if proxy_username and proxy_password:
+                proxy_config = WebshareProxyConfig(
+                    proxy_username=proxy_username,
+                    proxy_password=proxy_password
+                )
+        
+        # Initialize transcript API with optional proxy
+        if proxy_config:
+            self.transcript_api = YouTubeTranscriptApi(proxy_config=proxy_config)
+        else:
+            self.transcript_api = YouTubeTranscriptApi()
     
     # ==================== Channel Scraping ====================
     

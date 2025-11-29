@@ -38,6 +38,9 @@ def main():
         print("  - sources.youtube_channel_id: UNIQUE")
         print("  - sources.youtube_username: UNIQUE")
         
+        print("\nNew tables:")
+        print("  - digests: Stores AI-generated summaries with title and summary")
+        
         print("\n" + "=" * 70)
         print("Database recreation complete!")
         print("=" * 70)

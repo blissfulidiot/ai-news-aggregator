@@ -9,6 +9,10 @@ sys.path.insert(0, str(project_root))
 from app.database.connection import get_db_session
 from app.database.repository import VideoRepository
 from app.services.youtube_service import YouTubeService
+from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+
+# Constant for unavailable transcripts
+TRANSCRIPT_UNAVAILABLE = "transcript is not available"
 
 
 def fetch_transcripts_batch(limit: int = None, batch_size: int = 10):
@@ -42,6 +46,7 @@ def fetch_transcripts_batch(limit: int = None, batch_size: int = 10):
         youtube_service = YouTubeService()
         successful = 0
         failed = 0
+        unavailable = 0
         
         for i, video in enumerate(videos, 1):
             try:
@@ -58,13 +63,22 @@ def fetch_transcripts_batch(limit: int = None, batch_size: int = 10):
                     successful += 1
                     print(f"  ✓ Successfully fetched transcript ({len(transcript_obj.text)} chars)")
                 else:
-                    failed += 1
-                    print(f"  ✗ Failed to fetch transcript (may not be available)")
+                    # Transcript not available - store placeholder to prevent retry loops
+                    VideoRepository.update_transcript(db, video.id, TRANSCRIPT_UNAVAILABLE)
+                    unavailable += 1
+                    print(f"  ✗ Transcript not available (stored placeholder)")
                 
                 # Show progress every batch_size videos
                 if i % batch_size == 0:
-                    print(f"\n  Progress: {successful} successful, {failed} failed\n")
+                    print(f"\n  Progress: {successful} successful, {unavailable} unavailable, {failed} errors\n")
                     
+            except (TranscriptsDisabled, NoTranscriptFound) as e:
+                # Transcript is explicitly disabled or not found - store placeholder
+                VideoRepository.update_transcript(db, video.id, TRANSCRIPT_UNAVAILABLE)
+                unavailable += 1
+                print(f"  ✗ Transcript not available: {type(e).__name__}")
+                db.commit()  # Commit the placeholder
+                continue
             except Exception as e:
                 failed += 1
                 print(f"  ✗ Error: {e}")
@@ -76,7 +90,8 @@ def fetch_transcripts_batch(limit: int = None, batch_size: int = 10):
         print("=" * 70)
         print(f"Total processed: {total_count}")
         print(f"✓ Successful: {successful}")
-        print(f"✗ Failed: {failed}")
+        print(f"✗ Unavailable: {unavailable}")
+        print(f"✗ Errors: {failed}")
         print("=" * 70)
         
     except Exception as e:

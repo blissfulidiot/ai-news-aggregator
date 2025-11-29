@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
-from app.database.models import Source, Article, Video, UserSettings, SourceType
+from app.database.models import Source, Article, Video, UserSettings, Digest, SourceType
 from app.database.connection import get_db_session
 
 
@@ -392,6 +392,81 @@ class UserSettingsRepository:
         user_settings = UserSettingsRepository.get_by_id(db, user_id)
         if user_settings:
             db.delete(user_settings)
+            db.commit()
+            return True
+        return False
+
+
+class DigestRepository:
+    """Repository for Digest operations"""
+    
+    @staticmethod
+    def create(db: Session, url: str, title: str, summary: str, content_type: str,
+               article_id: Optional[int] = None, video_id: Optional[int] = None) -> Digest:
+        """Create a new digest"""
+        digest = Digest(
+            article_id=article_id,
+            video_id=video_id,
+            url=url,
+            title=title,
+            summary=summary,
+            content_type=content_type
+        )
+        db.add(digest)
+        db.commit()
+        db.refresh(digest)
+        return digest
+    
+    @staticmethod
+    def get_by_id(db: Session, digest_id: int) -> Optional[Digest]:
+        """Get digest by ID"""
+        return db.query(Digest).filter(Digest.id == digest_id).first()
+    
+    @staticmethod
+    def get_by_url(db: Session, url: str) -> Optional[Digest]:
+        """Get digest by URL"""
+        return db.query(Digest).filter(Digest.url == url).first()
+    
+    @staticmethod
+    def get_by_article_id(db: Session, article_id: int) -> Optional[Digest]:
+        """Get digest by article ID"""
+        return db.query(Digest).filter(Digest.article_id == article_id).first()
+    
+    @staticmethod
+    def get_by_video_id(db: Session, video_id: int) -> Optional[Digest]:
+        """Get digest by video ID"""
+        return db.query(Digest).filter(Digest.video_id == video_id).first()
+    
+    @staticmethod
+    def get_all(db: Session, limit: Optional[int] = None) -> List[Digest]:
+        """Get all digests"""
+        query = db.query(Digest).order_by(Digest.created_at.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+    
+    @staticmethod
+    def get_recent(db: Session, hours: int = 24, limit: Optional[int] = None) -> List[Digest]:
+        """Get recent digests within specified hours"""
+        from datetime import timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        
+        query = db.query(Digest).filter(Digest.created_at >= cutoff).order_by(Digest.created_at.desc())
+        if limit:
+            query = query.limit(limit)
+        return query.all()
+    
+    @staticmethod
+    def exists_by_url(db: Session, url: str) -> bool:
+        """Check if digest exists by URL"""
+        return db.query(Digest).filter(Digest.url == url).first() is not None
+    
+    @staticmethod
+    def delete(db: Session, digest_id: int) -> bool:
+        """Delete digest"""
+        digest = DigestRepository.get_by_id(db, digest_id)
+        if digest:
+            db.delete(digest)
             db.commit()
             return True
         return False
