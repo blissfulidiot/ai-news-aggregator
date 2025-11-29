@@ -518,8 +518,17 @@ class DigestRepository:
         return query.all()
     
     @staticmethod
-    def mark_as_sent(db: Session, digest_id: int, user_email: str) -> DigestSent:
-        """Mark a digest as sent to a user"""
+    def mark_as_sent(db: Session, digest_id: int, user_email: str) -> Optional[DigestSent]:
+        """Mark a digest as sent to a user (idempotent - won't create duplicates)"""
+        # Check if already sent
+        existing = db.query(DigestSent).filter(
+            DigestSent.digest_id == digest_id,
+            DigestSent.user_email == user_email
+        ).first()
+        
+        if existing:
+            return existing  # Already marked as sent
+        
         digest_sent = DigestSent(
             digest_id=digest_id,
             user_email=user_email

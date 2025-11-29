@@ -9,16 +9,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Database configuration
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = os.getenv('DB_PORT', '5432')
-DB_NAME = os.getenv('DB_NAME', 'news_aggregator')
-DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
+# Priority: DATABASE_URL (production) > Individual DB_* vars (local)
 
-# Use DATABASE_URL if provided, otherwise construct from components
+# Check if DATABASE_URL is set (production/Render)
 DATABASE_URL = os.getenv('DATABASE_URL')
-if not DATABASE_URL:
+
+if DATABASE_URL:
+    # Production mode: Use DATABASE_URL directly
+    # This is automatically provided by Render or can be set manually
+    DB_MODE = "production"
+else:
+    # Local development mode: Construct from individual components
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_PORT = os.getenv('DB_PORT', '5432')
+    DB_NAME = os.getenv('DB_NAME', 'news_aggregator')
+    DB_USER = os.getenv('DB_USER', 'postgres')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
     DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    DB_MODE = "local"
 
 # Create engine
 engine = create_engine(

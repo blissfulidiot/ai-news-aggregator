@@ -65,16 +65,26 @@ RSS_FEEDS = {
 
 ### Environment Variables
 
-Create `.env` file:
+Create `.env` file (copy from `.env.example`):
 
+**Database Configuration (choose one):**
+
+**Option 1: Production Database (Render/External)**
 ```bash
-# Database
+DATABASE_URL=postgresql://user:password@host:port/database
+```
+
+**Option 2: Local Development Database**
+```bash
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=news_aggregator
 DB_USER=postgres
 DB_PASSWORD=postgres
+```
 
+**Other Required Variables:**
+```bash
 # OpenAI
 OPENAI_API_KEY=your_key_here
 
@@ -83,6 +93,8 @@ SMTP_USERNAME=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
 FROM_EMAIL=your_email@gmail.com
 ```
+
+**Note:** `DATABASE_URL` takes priority. If set, individual `DB_*` variables are ignored.
 
 ### Create User Profile
 
