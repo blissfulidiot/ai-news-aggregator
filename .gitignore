@@ -79,3 +79,7 @@ test_results/
 *.temp
 .cache/
 
+# Email digest outputs
+email_digest_*.txt
+email_digest_*.html
+
