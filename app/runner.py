@@ -120,49 +120,27 @@ class NewsAggregator:
             if db:
                 db.close()
     
-    def _save_anthropic_articles(self, db, articles: List[AnthropicNewsArticle]) -> int:
-        """Save Anthropic articles to database"""
-        # Get or create Anthropic source
-        source = SourceRepository.get_or_create(
-            db,
-            name="Anthropic",
-            url="https://www.anthropic.com",
-            source_type=SourceType.RSS,
-            rss_url="https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml"
-        )
+    def _save_articles(self, db, articles: List, source_name: str, source_url: str, 
+                       rss_url: str, feed_type: Optional[str] = None) -> int:
+        """
+        Save articles to database (unified method for all RSS sources)
         
-        saved_count = 0
-        for article in articles:
-            try:
-                # Check if article already exists
-                if ArticleRepository.exists_by_url(db, article.url):
-                    continue
-                
-                # Save article
-                ArticleRepository.create(
-                    db,
-                    source_id=source.id,
-                    title=article.title,
-                    url=article.url,
-                    published_at=article.published_at,
-                    description=article.description,
-                    feed_type=article.feed_type
-                )
-                saved_count += 1
-            except Exception as e:
-                print(f"    ✗ Error saving article {article.title[:50]}: {e}")
-                db.rollback()
-                continue
-        
-        return saved_count
-    
-    def _save_openai_articles(self, db, source_name: str, rss_url: str, articles: List[OpenAINewsArticle]) -> int:
-        """Save OpenAI articles to database"""
+        Args:
+            db: Database session
+            articles: List of article objects (AnthropicNewsArticle or OpenAINewsArticle)
+            source_name: Name of the source
+            source_url: Base URL of the source
+            rss_url: RSS feed URL
+            feed_type: Optional feed type (for Anthropic articles)
+            
+        Returns:
+            Number of articles saved
+        """
         # Get or create source
         source = SourceRepository.get_or_create(
             db,
             name=source_name,
-            url=f"https://openai.com",  # Base URL
+            url=source_url,
             source_type=SourceType.RSS,
             rss_url=rss_url
         )
@@ -174,15 +152,21 @@ class NewsAggregator:
                 if ArticleRepository.exists_by_url(db, article.url):
                     continue
                 
+                # Prepare article data
+                article_data = {
+                    "source_id": source.id,
+                    "title": article.title,
+                    "url": article.url,
+                    "published_at": article.published_at,
+                    "description": article.description
+                }
+                
+                # Add feed_type if provided (for Anthropic articles)
+                if feed_type and hasattr(article, 'feed_type'):
+                    article_data["feed_type"] = article.feed_type
+                
                 # Save article
-                ArticleRepository.create(
-                    db,
-                    source_id=source.id,
-                    title=article.title,
-                    url=article.url,
-                    published_at=article.published_at,
-                    description=article.description
-                )
+                ArticleRepository.create(db, **article_data)
                 saved_count += 1
             except Exception as e:
                 print(f"    ✗ Error saving article {article.title[:50]}: {e}")
@@ -190,6 +174,26 @@ class NewsAggregator:
                 continue
         
         return saved_count
+    
+    def _save_anthropic_articles(self, db, articles: List[AnthropicNewsArticle]) -> int:
+        """Save Anthropic articles to database"""
+        return self._save_articles(
+            db, articles,
+            source_name="Anthropic",
+            source_url="https://www.anthropic.com",
+            rss_url="https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml",
+            feed_type="anthropic"
+        )
+    
+    def _save_openai_articles(self, db, source_name: str, rss_url: str, articles: List[OpenAINewsArticle]) -> int:
+        """Save OpenAI articles to database"""
+        return self._save_articles(
+            db, articles,
+            source_name=source_name,
+            source_url="https://openai.com",
+            rss_url=rss_url,
+            feed_type=None
+        )
     
     def _save_youtube_videos(self, db, videos: List[ChannelVideo]) -> int:
         """Save YouTube videos to database"""
