@@ -1,17 +1,21 @@
 [project]
 name = "ai-news-aggregator"
 version = "0.1.0"
-description = "Add your description here"
+description = "AI News Aggregator - Scrapes articles and videos, generates AI summaries, and sends personalized email digests"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.14.2",
     "docling>=2.63.0",
     "feedparser>=6.0.12",
+    "google-api-python-client>=2.0.0",
+    "google-auth-httplib2>=0.1.0",
+    "google-auth-oauthlib>=1.0.0",
     "lxml>=6.0.2",
     "openai>=2.8.1",
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.0.0",
+    "python-dateutil>=2.8.2",
     "python-dotenv>=1.2.1",
     "requests>=2.32.5",
     "sqlalchemy>=2.0.44",
