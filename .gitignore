@@ -28,6 +28,7 @@ env/
 *.swo
 *.sublime-project
 *.sublime-workspace
+*.code-workspace
 .DS_Store
 
 # Database
