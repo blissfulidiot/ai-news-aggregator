@@ -117,16 +117,16 @@ Looking back: 24 hours
 ======================================================================
 STEP 1: Scraping Content and Saving to Database
 ======================================================================
-✓ Scraping complete:
+Scraping complete:
   Articles found: 15
   Videos found: 8
 
 ======================================================================
 STEP 2: Generating Digests
 ======================================================================
-✓ Digest agent initialized
+Digest agent initialized
 Found 5 articles and 3 videos to process
-✓ Digest generation complete:
+Digest generation complete:
   Successful: 8
   Failed: 0
 
@@ -134,9 +134,9 @@ Found 5 articles and 3 videos to process
 STEP 3: Sending Email Digests
 ======================================================================
 Found 3 user(s) to send emails to
-✓ Agents initialized
+Agents initialized
 Found 23 digests from the last 24 hours
-✓ Email sending complete:
+Email sending complete:
   Sent: 3
   Failed: 0
   Total users: 3

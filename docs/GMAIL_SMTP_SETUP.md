@@ -27,7 +27,7 @@ This guide explains how to set up Gmail SMTP with an app password to send emails
 4. Enter a name like "News Aggregator" or "AI News Aggregator"
 5. Click **Generate**
 6. **Copy the 16-character password** (it will look like: `abcd efgh ijkl mnop`)
-   - ⚠️ **Important**: You can only see this password once!
+   - **Important**: You can only see this password once!
 
 ### Step 3: Configure Environment Variables
 
