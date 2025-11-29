@@ -12,8 +12,8 @@ load_dotenv()
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = os.getenv('DB_PORT', '5432')
 DB_NAME = os.getenv('DB_NAME', 'news_aggregator')
-DB_USER = os.getenv('DB_USER', 'news_user')
-DB_PASSWORD = os.getenv('DB_PASSWORD', 'news_password')
+DB_USER = os.getenv('DB_USER', 'postgres')
+DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
 
 # Use DATABASE_URL if provided, otherwise construct from components
 DATABASE_URL = os.getenv('DATABASE_URL')

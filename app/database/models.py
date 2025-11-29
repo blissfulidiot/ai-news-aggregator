@@ -93,6 +93,10 @@ class UserSettings(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), nullable=False, unique=True, index=True)
     system_prompt = Column(Text, nullable=True)
+    # User profile fields
+    name = Column(String(255), nullable=True)  # User's name
+    background = Column(Text, nullable=True)  # User's background/profession
+    interests = Column(Text, nullable=True)  # User's interests (comma-separated or JSON)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     

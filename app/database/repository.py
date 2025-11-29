@@ -348,11 +348,16 @@ class UserSettingsRepository:
     """Repository for UserSettings operations"""
     
     @staticmethod
-    def create(db: Session, email: str, system_prompt: Optional[str] = None) -> UserSettings:
+    def create(db: Session, email: str, system_prompt: Optional[str] = None,
+               name: Optional[str] = None, background: Optional[str] = None,
+               interests: Optional[str] = None) -> UserSettings:
         """Create user settings"""
         user_settings = UserSettings(
             email=email,
-            system_prompt=system_prompt
+            system_prompt=system_prompt,
+            name=name,
+            background=background,
+            interests=interests
         )
         db.add(user_settings)
         db.commit()
