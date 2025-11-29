@@ -344,35 +344,64 @@ ai-news-aggregator/
    0 8 * * * cd /path/to/project && /path/to/venv/bin/python scripts/daily_runner.py
    ```
 
-### Render Deployment
+### Render Deployment (Quickest Method)
 
-See [docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md) for detailed Render setup instructions.
+**Prerequisites:**
+- Render account (free tier available)
+- GitHub repository with your code
 
-**Quick Render Setup:**
+**Steps:**
 
-1. **Create PostgreSQL Database**
-   - Go to Render Dashboard → New → PostgreSQL
-   - Copy the `DATABASE_URL` connection string
+1. **Push code to GitHub** (if not already done)
+   ```bash
+   git push origin main
+   ```
 
-2. **Create Web Service** (optional, for API)
-   - New → Web Service
+2. **Connect Render to GitHub**
+   - Go to [Render Dashboard](https://dashboard.render.com)
+   - Click "New +" → "Blueprint"
    - Connect your GitHub repository
-   - Build command: `pip install -r requirements.txt`
-   - Start command: `python main.py` (or Flask app)
+   - Render will detect `render.yaml` automatically
 
-3. **Create Cron Job**
-   - New → Cron Job
-   - Command: `python scripts/daily_runner.py`
-   - Schedule: `0 8 * * *` (daily at 8 AM UTC)
+3. **Set Environment Variables** (in Render dashboard)
+   After services are created, go to each service → Environment tab:
+   - **Cron Job service:**
+     - `OPENAI_API_KEY` - Your OpenAI API key
+     - `SMTP_USERNAME` - Your Gmail address
+     - `SMTP_PASSWORD` - Your Gmail app password
+     - `FROM_EMAIL` - Your Gmail address
+     - `SMTP_HOST` - `smtp.gmail.com` (optional, default)
+     - `SMTP_PORT` - `587` (optional, default)
+   - **Note:** `DATABASE_URL` is automatically provided by PostgreSQL service
 
-4. **Set Environment Variables**
-   - `DATABASE_URL` (auto-provided by PostgreSQL service)
-   - `OPENAI_API_KEY`
-   - `SMTP_USERNAME`, `SMTP_PASSWORD`, `FROM_EMAIL`
-   - `SMTP_HOST`, `SMTP_PORT`
+4. **Initialize Database** (one-time)
+   - Option A: Via Render Shell
+     - Go to Cron Job service → Shell tab
+     - Run: `python scripts/create_tables.py`
+   - Option B: Locally (if you have DATABASE_URL)
+     ```bash
+     export DATABASE_URL="postgresql://user:pass@host:port/dbname"
+     python scripts/create_tables.py
+     ```
 
-5. **Initialize Database**
-   - Run `python scripts/create_tables.py` once (via Render shell or locally)
+5. **Done!** The cron job will run daily at 8 AM UTC.
+
+**What Gets Created:**
+- ✅ Managed PostgreSQL database (`news-aggregator-db`)
+- ✅ Cron Job (`daily-news-runner`) that runs `daily_runner.py` daily
+
+**Customizing Schedule:**
+Edit `render.yaml` and change the `schedule` field:
+- `"0 8 * * *"` - Daily at 8 AM UTC
+- `"0 */6 * * *"` - Every 6 hours
+- `"0 0 * * *"` - Daily at midnight UTC
+
+**Manual Setup Alternative:**
+If you prefer manual setup instead of `render.yaml`:
+1. Create PostgreSQL service manually
+2. Create Cron Job manually
+3. Set environment variables manually
+4. Same result, just more clicks
 
 ## 🧪 Testing
 

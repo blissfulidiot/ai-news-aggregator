@@ -1,0 +1,26 @@
+services:
+  # Managed PostgreSQL Database
+  - type: pspg
+    name: news-aggregator-db
+    databaseName: news_aggregator
+    user: postgres
+    plan: free  # Use 'starter' or 'standard' for production
+
+  # Daily Cron Job - Runs the complete pipeline
+  - type: cron
+    name: daily-news-runner
+    schedule: "0 8 * * *"  # Daily at 8 AM UTC (adjust timezone as needed)
+    buildCommand: pip install -r requirements.txt
+    startCommand: python scripts/daily_runner.py
+    envVars:
+      # DATABASE_URL is automatically provided by the PostgreSQL service above
+      # You'll need to set these manually in Render dashboard:
+      # - OPENAI_API_KEY
+      # - SMTP_USERNAME
+      # - SMTP_PASSWORD
+      # - FROM_EMAIL
+      # - SMTP_HOST (optional, defaults to smtp.gmail.com)
+      # - SMTP_PORT (optional, defaults to 587)
+      - key: PYTHON_VERSION
+        value: 3.13.0
+
