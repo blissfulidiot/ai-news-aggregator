@@ -10,7 +10,7 @@ YOUTUBE_CHANNELS = [
 
 # RSS feed URLs for news sources
 RSS_FEEDS = {
-    "openai": "https://openai.com/rss.xml",  # Update with actual URL when available
+    "openai": "https://openai.com/news/rss",
     # Add more RSS feeds here
     # Example: "source_name": "https://example.com/rss.xml",
 }

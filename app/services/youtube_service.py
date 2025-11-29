@@ -126,10 +126,16 @@ class YouTubeService:
         
         try:
             feed = feedparser.parse(rss_url)
-            if feed.bozo or not feed.entries:
-                return []
             
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
+            print(f"    Cutoff time: {cutoff_time}")
+            print(f"    Feed entries found: {len(feed.entries) if feed.entries else 0}")
+            
+            if not feed.entries:
+                if feed.bozo:
+                    print(f"    ⚠ RSS feed parsing warning: {feed.bozo_exception}")
+                return []
+            
             videos = []
             
             for entry in feed.entries:
@@ -138,7 +144,10 @@ class YouTubeService:
                     videos.append(ChannelVideo(**video))
             
             return videos
-        except Exception:
+        except Exception as e:
+            print(f"  ✗ Error fetching videos from {username}: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def get_multiple_channels(self, channel_list: List[Dict], hours: int = 24) -> List[ChannelVideo]:
@@ -164,7 +173,10 @@ class YouTubeService:
             try:
                 videos = self.get_channel_videos(username, hours, channel_name)
                 all_videos.extend(videos)
-            except Exception:
+            except Exception as e:
+                print(f"  ✗ Error processing channel {username}: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
         
         all_videos.sort(key=lambda x: x.published_at, reverse=True)

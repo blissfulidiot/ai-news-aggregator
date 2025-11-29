@@ -30,10 +30,16 @@ class OpenAINewsScraper:
     def get_articles(self, hours: int = 24) -> List[NewsArticle]:
         """Get articles published within the specified time frame"""
         feed = feedparser.parse(self.rss_url)
-        if feed.bozo or not feed.entries:
-            return []
         
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        print(f"    Cutoff time: {cutoff}")
+        print(f"    Feed entries found: {len(feed.entries) if feed.entries else 0}")
+        
+        if not feed.entries:
+            if feed.bozo:
+                print(f"    ⚠ RSS feed parsing warning: {feed.bozo_exception}")
+            return []
+        
         articles = []
         
         for entry in feed.entries:

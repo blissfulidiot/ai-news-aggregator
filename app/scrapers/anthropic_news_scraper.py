@@ -46,13 +46,18 @@ class AnthropicNewsScraper:
             Combined and sorted list of NewsArticle models from all feeds
         """
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        print(f"    Cutoff time: {cutoff}")
         all_articles = []
         
         for feed_type, feed_url in self.FEEDS.items():
             try:
+                print(f"    Processing {feed_type} feed: {feed_url}")
                 feed = feedparser.parse(feed_url)
+                print(f"    Feed entries found: {len(feed.entries) if feed.entries else 0}")
                 
                 if not feed.entries:
+                    if feed.bozo:
+                        print(f"    ⚠ RSS feed parsing warning for {feed_type}: {feed.bozo_exception}")
                     continue
                 
                 for entry in feed.entries:

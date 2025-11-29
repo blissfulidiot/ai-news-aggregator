@@ -1,6 +1,6 @@
 """Main runner for news aggregator"""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 from app.scrapers.openai_news_scraper import OpenAINewsScraper, NewsArticle as OpenAINewsArticle
 from app.scrapers.anthropic_news_scraper import AnthropicNewsScraper, NewsArticle as AnthropicNewsArticle
@@ -54,6 +54,8 @@ class NewsAggregator:
         try:
             # Get Anthropic articles
             print(f"Fetching Anthropic articles (last {hours} hours)...")
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+            print(f"  Cutoff time: {cutoff}")
             anthropic_articles = self.anthropic_scraper.get_articles(hours=hours)
             results["articles"].extend(anthropic_articles)
             results["summary"]["anthropic"] = len(anthropic_articles)
@@ -67,6 +69,9 @@ class NewsAggregator:
             # Get OpenAI articles from all RSS feeds
             for source_name, scraper in self.openai_scrapers.items():
                 print(f"Fetching {source_name} articles (last {hours} hours)...")
+                print(f"  RSS URL: {scraper.rss_url}")
+                cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+                print(f"  Cutoff time: {cutoff}")
                 try:
                     articles = scraper.get_articles(hours=hours)
                     results["articles"].extend(articles)
@@ -84,6 +89,9 @@ class NewsAggregator:
             # Get YouTube videos
             if YOUTUBE_CHANNELS:
                 print(f"Fetching YouTube videos (last {hours} hours)...")
+                cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+                print(f"  Cutoff time: {cutoff}")
+                print(f"  Channels to check: {len(YOUTUBE_CHANNELS)}")
                 try:
                     videos = self.youtube_service.get_multiple_channels(YOUTUBE_CHANNELS, hours=hours)
                     
