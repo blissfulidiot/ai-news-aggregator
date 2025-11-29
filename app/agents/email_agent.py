@@ -21,12 +21,22 @@ class EmailIntroduction(BaseModel):
     introduction: str = Field(..., description="A brief, engaging introduction (2-3 sentences) summarizing what's coming in the top articles")
 
 
+class ArticleSection(BaseModel):
+    """A single article section in the email"""
+    rank: int = Field(..., description="Rank position (1 = most relevant)")
+    header: str = Field(..., description="Section header/title for the article")
+    summary: str = Field(..., description="Summary of the article")
+    url: str = Field(..., description="URL to the article")
+    relevance_score: float = Field(..., description="Relevance score from 0.0 to 100.0")
+    content_type: str = Field(..., description="Type of content: 'article' or 'video'")
+
+
 class EmailContent(BaseModel):
-    """Complete email content structure"""
+    """Complete email content structure with sections"""
     greeting: str = Field(..., description="Personalized greeting with user's name")
     date_line: str = Field(..., description="Formatted date line (e.g., 'Friday, November 28th')")
     introduction: str = Field(..., description="Introduction summary of the top articles")
-    ranked_items: List[dict] = Field(..., description="List of ranked digest items with title, summary, url, and rank")
+    sections: List[ArticleSection] = Field(..., description="List of article sections with headers, ordered by rank")
 
 
 class EmailAgent:
@@ -135,7 +145,7 @@ Write an introduction that gives readers a quick overview and makes them excited
             date: Date for the email (defaults to today)
             
         Returns:
-            EmailContent with greeting, date, introduction, and ranked items
+            EmailContent with greeting, date, introduction, and sections
         """
         # Take top 10 items
         top_items = ranked_items[:10]
@@ -152,16 +162,16 @@ Write an introduction that gives readers a quick overview and makes them excited
         # Generate introduction
         introduction = self.generate_introduction(top_items)
         
-        # Prepare ranked items for email (include rank, title, summary, url)
-        email_items = [
-            {
-                "rank": item.get("rank", i+1),
-                "title": item.get("title", ""),
-                "summary": item.get("summary", ""),
-                "url": item.get("url", ""),
-                "relevance_score": item.get("relevance_score", 0.0),
-                "content_type": item.get("content_type", "unknown")
-            }
+        # Create article sections with headers
+        sections = [
+            ArticleSection(
+                rank=item.get("rank", i+1),
+                header=item.get("title", ""),
+                summary=item.get("summary", ""),
+                url=item.get("url", ""),
+                relevance_score=item.get("relevance_score", 0.0),
+                content_type=item.get("content_type", "unknown")
+            )
             for i, item in enumerate(top_items)
         ]
         
@@ -169,7 +179,7 @@ Write an introduction that gives readers a quick overview and makes them excited
             greeting=greeting,
             date_line=date_line,
             introduction=introduction,
-            ranked_items=email_items
+            sections=sections
         )
     
     def format_email_html(self, email_content: EmailContent) -> str:
@@ -217,45 +227,73 @@ Write an introduction that gives readers a quick overview and makes them excited
             margin: 20px 0;
             font-size: 15px;
         }}
-        .article {{
-            margin: 25px 0;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
+        .section {{
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #ffffff;
+            border-left: 4px solid #4A90E2;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }}
-        .article:last-child {{
-            border-bottom: none;
+        .section-header {{
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
         }}
-        .rank {{
+        .rank-badge {{
             display: inline-block;
             background-color: #4A90E2;
             color: white;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
             font-weight: bold;
-            margin-right: 10px;
+            margin-right: 15px;
+            min-width: 45px;
+            text-align: center;
         }}
-        .title {{
-            font-size: 18px;
+        .section-title {{
+            font-size: 20px;
             font-weight: bold;
-            margin: 10px 0;
+            color: #333;
+            margin: 0;
+            flex: 1;
         }}
-        .title a {{
+        .section-title a {{
             color: #4A90E2;
             text-decoration: none;
         }}
-        .title a:hover {{
+        .section-title a:hover {{
             text-decoration: underline;
         }}
-        .summary {{
+        .section-summary {{
             color: #555;
-            margin: 10px 0;
-            line-height: 1.6;
+            margin: 15px 0;
+            line-height: 1.7;
+            font-size: 15px;
         }}
-        .url {{
+        .section-url {{
             color: #999;
-            font-size: 12px;
-            margin-top: 5px;
+            font-size: 13px;
+            margin-top: 10px;
+            word-break: break-all;
+        }}
+        .section-url a {{
+            color: #4A90E2;
+            text-decoration: none;
+        }}
+        .section-url a:hover {{
+            text-decoration: underline;
+        }}
+        .content-type-badge {{
+            display: inline-block;
+            background-color: #e8e8e8;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 10px;
+            text-transform: uppercase;
         }}
         .footer {{
             margin-top: 30px;
@@ -277,18 +315,23 @@ Write an introduction that gives readers a quick overview and makes them excited
         {email_content.introduction}
     </div>
     
-    <div class="articles">
+    <div class="sections">
 """
         
-        for item in email_content.ranked_items:
+        for section in email_content.sections:
             html += f"""
-        <div class="article">
-            <span class="rank">#{item['rank']}</span>
-            <div class="title">
-                <a href="{item['url']}" target="_blank">{item['title']}</a>
+        <div class="section">
+            <div class="section-header">
+                <span class="rank-badge">#{section.rank}</span>
+                <h2 class="section-title">
+                    <a href="{section.url}" target="_blank">{section.header}</a>
+                    <span class="content-type-badge">{section.content_type}</span>
+                </h2>
             </div>
-            <div class="summary">{item['summary']}</div>
-            <div class="url">{item['url']}</div>
+            <div class="section-summary">{section.summary}</div>
+            <div class="section-url">
+                <a href="{section.url}" target="_blank">{section.url}</a>
+            </div>
         </div>
 """
         
@@ -321,15 +364,21 @@ Here is your daily news for {email_content.date_line}
 
 """
         
-        for item in email_content.ranked_items:
+        for section in email_content.sections:
             text += f"""
-#{item['rank']} {item['title']}
-{item['summary']}
-{item['url']}
+{'='*70}
+#{section.rank} {section.header}
+{'='*70}
+[{section.content_type.upper()}]
+
+{section.summary}
+
+Read more: {section.url}
 
 """
         
-        text += "\n---\nThis is your personalized news digest, ranked by relevance to your interests."
+        text += "\n" + "="*70 + "\n"
+        text += "This is your personalized news digest, ranked by relevance to your interests."
         
         return text
 
