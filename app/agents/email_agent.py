@@ -134,13 +134,13 @@ Write an introduction that gives readers a quick overview and makes them excited
         
         return response.output_parsed.introduction
     
-    def generate_email_content(self, user_name: str, ranked_items: List[dict], 
+    def generate_email_content(self, user_name: Optional[str], ranked_items: List[dict], 
                               date: Optional[datetime] = None) -> EmailContent:
         """
         Generate complete email content structure
         
         Args:
-            user_name: User's name for personalization
+            user_name: User's name for personalization (None or empty to skip greeting)
             ranked_items: List of ranked digest items (will use top 10)
             date: Date for the email (defaults to today)
             
@@ -153,8 +153,11 @@ Write an introduction that gives readers a quick overview and makes them excited
         if not top_items:
             raise ValueError("No ranked items provided")
         
-        # Generate greeting
-        greeting = f"Hey {user_name},"
+        # Generate greeting (skip if no name provided)
+        if user_name and user_name.strip():
+            greeting = f"Hey {user_name},"
+        else:
+            greeting = ""
         
         # Format date
         date_line = self._format_date(date)
@@ -181,6 +184,22 @@ Write an introduction that gives readers a quick overview and makes them excited
             introduction=introduction,
             sections=sections
         )
+    
+    def _extract_youtube_video_id(self, url: str) -> Optional[str]:
+        """
+        Extract YouTube video ID from URL
+        
+        Args:
+            url: YouTube video URL
+            
+        Returns:
+            Video ID or None if not a YouTube URL
+        """
+        if 'youtube.com/watch?v=' in url:
+            return url.split('watch?v=')[-1].split('&')[0]
+        elif 'youtu.be/' in url:
+            return url.split('youtu.be/')[-1].split('?')[0]
+        return None
     
     def format_email_html(self, email_content: EmailContent) -> str:
         """
@@ -272,18 +291,61 @@ Write an introduction that gives readers a quick overview and makes them excited
             line-height: 1.7;
             font-size: 15px;
         }}
-        .section-url {{
-            color: #999;
-            font-size: 13px;
-            margin-top: 10px;
-            word-break: break-all;
-        }}
-        .section-url a {{
-            color: #4A90E2;
+        .read-more-button {{
+            display: inline-block;
+            background-color: #4A90E2;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
             text-decoration: none;
+            font-weight: bold;
+            margin-top: 15px;
+            font-size: 14px;
         }}
-        .section-url a:hover {{
-            text-decoration: underline;
+        .read-more-button:hover {{
+            background-color: #357ABD;
+        }}
+        .youtube-video {{
+            margin-top: 15px;
+            text-align: center;
+        }}
+        .youtube-thumbnail {{
+            display: inline-block;
+            position: relative;
+            max-width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }}
+        .youtube-thumbnail img {{
+            width: 100%;
+            max-width: 560px;
+            height: auto;
+            display: block;
+        }}
+        .youtube-play-button {{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 68px;
+            height: 48px;
+            background-color: rgba(23, 35, 34, 0.9);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }}
+        .youtube-play-button::before {{
+            content: '';
+            border-style: solid;
+            border-width: 12px 0 12px 20px;
+            border-color: transparent transparent transparent white;
+            margin-left: 4px;
+        }}
+        .youtube-link {{
+            text-decoration: none;
+            color: inherit;
         }}
         .content-type-badge {{
             display: inline-block;
@@ -307,7 +369,7 @@ Write an introduction that gives readers a quick overview and makes them excited
 </head>
 <body>
     <div class="header">
-        <div class="greeting">{email_content.greeting}</div>
+        {f'<div class="greeting">{email_content.greeting}</div>' if email_content.greeting else ''}
         <div class="date">Here is your daily news for {email_content.date_line}</div>
     </div>
     
@@ -319,6 +381,9 @@ Write an introduction that gives readers a quick overview and makes them excited
 """
         
         for section in email_content.sections:
+            # Check if it's a YouTube video
+            youtube_video_id = self._extract_youtube_video_id(section.url) if section.content_type == 'video' else None
+            
             html += f"""
         <div class="section">
             <div class="section-header">
@@ -328,10 +393,26 @@ Write an introduction that gives readers a quick overview and makes them excited
                     <span class="content-type-badge">{section.content_type}</span>
                 </h2>
             </div>
-            <div class="section-summary">{section.summary}</div>
-            <div class="section-url">
-                <a href="{section.url}" target="_blank">{section.url}</a>
-            </div>
+            <div class="section-summary">{section.summary}</div>"""
+            
+            # Add YouTube video thumbnail if it's a video
+            if youtube_video_id:
+                thumbnail_url = f"https://img.youtube.com/vi/{youtube_video_id}/maxresdefault.jpg"
+                html += f"""
+            <div class="youtube-video">
+                <a href="{section.url}" target="_blank" class="youtube-link">
+                    <div class="youtube-thumbnail">
+                        <img src="{thumbnail_url}" alt="{section.header}" />
+                        <div class="youtube-play-button"></div>
+                    </div>
+                </a>
+            </div>"""
+            else:
+                # Add "Read more" button only for articles (not videos)
+                html += f"""
+            <a href="{section.url}" target="_blank" class="read-more-button">Read more →</a>"""
+            
+            html += """
         </div>
 """
         
@@ -357,8 +438,8 @@ Write an introduction that gives readers a quick overview and makes them excited
         Returns:
             Plain text formatted email string
         """
-        text = f"""{email_content.greeting}
-Here is your daily news for {email_content.date_line}
+        greeting_line = f"{email_content.greeting}\n" if email_content.greeting else ""
+        text = f"""{greeting_line}Here is your daily news for {email_content.date_line}
 
 {email_content.introduction}
 

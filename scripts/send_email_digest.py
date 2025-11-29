@@ -32,12 +32,16 @@ def send_email_digest(recipient_email: str, hours: int = 24, use_html: bool = Tr
     if not profile:
         print(f"\n⚠ User profile not found for {recipient_email}")
         print("Using recipient email as profile lookup...")
-        # Use recipient email as fallback
-        user_name = recipient_email.split('@')[0].replace('.', ' ').title()
+        # Use None if no profile (will skip greeting)
+        user_name = None
     else:
-        user_name = profile.get('name') or recipient_email.split('@')[0].replace('.', ' ').title()
+        # Use name from profile, or None if not set (will skip greeting)
+        user_name = profile.get('name') if profile.get('name') and profile.get('name').strip() else None
     
-    print(f"\nUser: {user_name} ({recipient_email})")
+    if user_name:
+        print(f"\nUser: {user_name} ({recipient_email})")
+    else:
+        print(f"\nUser: {recipient_email} (no name in profile)")
     
     # Get recent digests
     db_gen = get_db_session()
