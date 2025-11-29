@@ -1,6 +1,6 @@
 services:
   # Managed PostgreSQL Database
-  - type: pspg
+  - type: pg
     name: news-aggregator-db
     databaseName: news_aggregator
     user: postgres
