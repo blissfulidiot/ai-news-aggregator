@@ -1,55 +1,70 @@
 # AI News Aggregator
 
-An intelligent news aggregator that scrapes articles and videos from multiple sources, generates AI-powered summaries, and delivers personalized email digests.
+A news aggregator that pulls articles and videos from RSS feeds and YouTube channels, generates summaries using OpenAI, and sends personalized email digests.
 
 ## What It Does
 
-1. **Scrapes** news from RSS feeds (OpenAI, Anthropic) and YouTube channels
-2. **Stores** everything in PostgreSQL
-3. **Generates** AI summaries using OpenAI
-4. **Ranks** content by your interests
-5. **Sends** personalized email digests daily
+The system scrapes content from multiple sources, stores it in a PostgreSQL database, creates AI summaries, ranks them based on your interests, and emails you a daily digest.
 
 ## Quick Start
 
 ### Prerequisites
-- Python 3.13+
-- PostgreSQL (Docker recommended)
-- OpenAI API key
-- Gmail account with app password
+
+You'll need:
+- Python 3.13 or higher
+- PostgreSQL (Docker works well for local development)
+- An OpenAI API key
+- A Gmail account with an app password set up
 
 ### Setup
 
+Clone the repository and set up your environment:
+
 ```bash
-# 1. Clone and setup
 git clone <repository-url>
 cd ai-news-aggregator
 python3 -m venv .venv
 source .venv/bin/activate
+```
 
-# 2. Install dependencies (using UV)
+Install dependencies using UV:
+
+```bash
 pip install uv
 uv sync
+```
 
-# 3. Start database
+Start the database:
+
+```bash
 cd docker && docker-compose up -d && cd ..
+```
 
-# 4. Configure environment
+Set up your environment variables:
+
+```bash
 cp .env.example .env
-# Edit .env and add: OPENAI_API_KEY, SMTP_USERNAME, SMTP_PASSWORD, FROM_EMAIL
+```
 
-# 5. Initialize database
+Edit `.env` and add your `OPENAI_API_KEY`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `FROM_EMAIL`.
+
+Initialize the database:
+
+```bash
 python scripts/create_tables.py
+```
 
-# 6. Run it!
+Run it:
+
+```bash
 python scripts/daily_runner.py
 ```
 
 ## Configuration
 
-### Add News Sources
+### Adding News Sources
 
-Edit `app/config.py`:
+Edit `app/config.py` to add YouTube channels or RSS feeds:
 
 ```python
 # YouTube Channels
@@ -65,20 +80,23 @@ RSS_FEEDS = {
 
 ### Environment Variables
 
-Create `.env` file (copy from `.env.example`):
+Copy `.env.example` to `.env` and configure it.
 
-**Database Configuration (choose one):**
+For the database, you have two options:
 
 **Option 1: Production Database (Render/External)**
+
+Set `DATABASE_URL` to your production database connection string. This takes priority over the individual database variables below.
+
 ```bash
-# Set DATABASE_URL to use production database
-# This takes priority over individual DB_* variables
 DATABASE_URL=postgresql://user:password@host:port/database
 ```
 
 **Option 2: Local Development Database**
+
+Comment out `DATABASE_URL` and use individual variables for local Docker PostgreSQL:
+
 ```bash
-# Comment out DATABASE_URL and use individual variables
 # DB_HOST=localhost
 # DB_PORT=5432
 # DB_NAME=news_aggregator
@@ -86,9 +104,10 @@ DATABASE_URL=postgresql://user:password@host:port/database
 # DB_PASSWORD=postgres
 ```
 
-**Note:** `DATABASE_URL` takes priority. If set, individual `DB_*` variables are ignored. This makes it easy to switch between local and production databases.
+The `DATABASE_URL` variable takes priority. If it's set, the individual `DB_*` variables are ignored. This makes it easy to switch between local and production.
 
-**Other Required Variables:**
+You'll also need:
+
 ```bash
 # OpenAI
 OPENAI_API_KEY=your_key_here
@@ -99,7 +118,9 @@ SMTP_PASSWORD=your_app_password
 FROM_EMAIL=your_email@gmail.com
 ```
 
-### Create User Profile
+### Creating a User Profile
+
+Create a user profile so the system knows what content to prioritize:
 
 ```bash
 python scripts/manage_profile.py create \
@@ -111,65 +132,73 @@ python scripts/manage_profile.py create \
 
 ## Usage
 
-### Run Complete Pipeline
+### Running the Complete Pipeline
+
+Run everything at once:
+
 ```bash
 python scripts/daily_runner.py
 ```
 
-**Options:**
-- `--hours 48` - Look back 48 hours
-- `--text` - Plain text emails
-- `--skip-scraping` - Skip scraping step
+Options:
+- `--hours 48` - Look back 48 hours instead of 24
+- `--text` - Send plain text emails instead of HTML
+- `--skip-scraping` - Skip the scraping step (useful for testing)
 
-### Individual Steps
+### Running Individual Steps
+
+You can also run each step separately:
+
 ```bash
 python scripts/run_aggregator.py 24        # Scrape content
 python scripts/process_digests.py         # Generate summaries
 python scripts/send_email_digest.py user@example.com 24 html
 ```
 
-## Deployment (Optional)
+## Deployment
 
 ### Local Development
-Run manually or schedule with cron:
+
+Run it manually or set up a cron job:
+
 ```bash
 0 8 * * * cd /path/to/project && /path/to/venv/bin/python scripts/daily_runner.py
 ```
 
-### Render Cloud Deployment (Optional)
+### Render Cloud Deployment
 
-Deploy to Render for automatic daily runs:
+You can deploy to Render for automatic daily runs.
 
-1. **Push to GitHub** (use `deployment` branch)
+1. Push to GitHub (use the `deployment` branch):
    ```bash
    git push origin deployment
    ```
 
-2. **Connect to Render**
-   - Go to [Render Dashboard](https://dashboard.render.com)
-   - New → Blueprint → Select your repo
-   - Render detects `render.yaml` automatically
+2. Connect to Render:
+   - Go to the [Render Dashboard](https://dashboard.render.com)
+   - Click New → Blueprint → Select your repository
+   - Render will detect `render.yaml` automatically
 
-3. **Set Environment Variables** in Render dashboard:
+3. Set environment variables in the Render dashboard:
    - `OPENAI_API_KEY`
    - `SMTP_USERNAME`, `SMTP_PASSWORD`, `FROM_EMAIL`
-   - `DATABASE_URL` is auto-provided
+   - `DATABASE_URL` is automatically provided
 
-4. **Initialize Database** (one-time)
-   - Render Shell: `python scripts/create_tables.py`
+4. Initialize the database (one-time):
+   - Use Render Shell: `python scripts/create_tables.py`
 
-**What Gets Created:**
-- PostgreSQL database (managed)
-- Cron job (runs daily at 8 AM UTC)
+This creates:
+- A managed PostgreSQL database
+- A cron job that runs daily at 8 AM UTC
 
-See [docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md) for detailed instructions.
+See [docs/RENDER_DEPLOYMENT.md](docs/RENDER_DEPLOYMENT.md) for more detailed instructions.
 
 ## Project Structure
 
 ```
 app/
 ├── agents/          # AI agents (digest, ranking, email)
-├── database/        # Database models and CRUD
+├── database/        # Database models and CRUD operations
 ├── scrapers/        # RSS scrapers (Anthropic, OpenAI)
 ├── services/        # YouTube service, SMTP service
 └── runner.py        # Main aggregator
@@ -184,51 +213,59 @@ scripts/
 
 ## How It Works
 
-1. **Scraping**: Fetches articles/videos from configured sources (last 24 hours)
-2. **Digest Generation**: Creates AI summaries for new content
-3. **Email Delivery**: Ranks content by user profile and sends personalized emails
-4. **Tracking**: Tracks which digests have been sent to each user (prevents duplicates)
+1. Scraping: Fetches articles and videos from configured sources (defaults to last 24 hours)
+2. Digest Generation: Creates AI summaries for new content
+3. Email Delivery: Ranks content by user profile and sends personalized emails
+4. Tracking: Tracks which digests have been sent to each user to prevent duplicates
 
 ## Features
 
 ### Digest Tracking
-- **Prevents Duplicates**: Tracks which digests have been sent to each user
-- **Per-User Filtering**: Each user only receives new/unseen digests
-- **Automatic Tracking**: Digests are marked as sent after successful email delivery
+
+The system tracks which digests have been sent to each user, so you won't get duplicate emails. Each user only receives new digests they haven't seen yet. Digests are automatically marked as sent after successful email delivery.
 
 ### Database Switching
-- **Easy Switching**: Toggle between local and production by setting/unsetting `DATABASE_URL`
-- **Automatic Detection**: System detects which database mode to use
-- **Production Ready**: Works seamlessly with Render PostgreSQL
+
+You can easily switch between local and production databases by setting or unsetting `DATABASE_URL`. The system automatically detects which database mode to use. Works seamlessly with Render PostgreSQL.
 
 ## Troubleshooting
 
-**Database issues?**
+**Database connection issues?**
+
+Check which database you're connected to:
 ```bash
-# Check which database you're connected to
 python3 -c "from app.database.connection import DB_MODE; print(f'Mode: {DB_MODE}')"
+```
 
-# Local: Check Docker
+For local development, make sure Docker is running:
+```bash
 docker ps  # Check PostgreSQL is running
+```
 
-# Test connection
+Test the connection:
+```bash
 python scripts/test_database.py
 ```
 
 **Email not sending?**
+
+Test SMTP configuration:
 ```bash
 python scripts/test_smtp.py recipient@example.com
-# Check Gmail app password (not regular password)
 ```
 
+Make sure you're using a Gmail app password, not your regular password.
+
 **No content found?**
-- Check RSS feed URLs are accessible
+
+- Check that RSS feed URLs are accessible
 - Verify YouTube usernames in `app/config.py`
-- Try: `python scripts/daily_runner.py --hours 168`
+- Try looking back further: `python scripts/daily_runner.py --hours 168`
 
 **OpenAI errors?**
-- Verify `OPENAI_API_KEY` in `.env`
-- Check API quota/billing
+
+- Verify `OPENAI_API_KEY` is set in your `.env` file
+- Check your API quota and billing status
 
 ## Documentation
 
@@ -239,4 +276,4 @@ python scripts/test_smtp.py recipient@example.com
 
 ---
 
-**Need Help?** Check the `docs/` folder or open an issue on GitHub.
+For more help, check the `docs/` folder or open an issue on GitHub.
