@@ -99,8 +99,6 @@ SMTP_PASSWORD=your_app_password
 FROM_EMAIL=your_email@gmail.com
 ```
 
-**Note:** `DATABASE_URL` takes priority. If set, individual `DB_*` variables are ignored.
-
 ### Create User Profile
 
 ```bash
